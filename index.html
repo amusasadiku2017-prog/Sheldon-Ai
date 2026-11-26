@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHELDON AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="avatar">🧠</div>
+    <h1>SHELDON AI</h1>
+    <p>Dr. Sheldon Cooper • Bazinga Edition • No API</p>
+  </div>
+
+  <button id="wakeBtn" onclick="wakeSheldon()">🔊 TAP TO WAKE SHELDON</button>
+
+  <div class="voice-row">
+    <input type="checkbox" id="voiceOn" checked> <label for="voiceOn">Sheldon Voice ON</label>
+    <span> | Speed:</span>
+    <select id="voiceSpeed">
+      <option value="1">Normal</option>
+      <option value="1.2">Fast</option>
+      <option value="0.8">Slow</option>
+    </select>
+  </div>
+
+  <div id="chat">
+    <div class="msg sheldon"><b>Sheldon:</b> Tap the yellow button above so I can welcome you with my voice.</div>
+  </div>
+
+  <div class="quick">
+    <button onclick="quickAsk('Tell me a joke')">Tell me a joke</button>
+    <button onclick="quickAsk('Do you like trains?')">Trains?</button>
+    <button onclick="quickAsk('Knock knock')">Knock Knock</button>
+    <button onclick="quickAsk('What is physics?')">Physics?</button>
+  </div>
+
+  <div class="input-box">
+    <input id="input" placeholder="Talk to Sheldon..." onkeypress="if(event.key==='Enter') askSheldon()">
+    <button onclick="askSheldon()">Send</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+  </html>
