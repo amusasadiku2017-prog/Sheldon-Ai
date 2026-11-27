@@ -1,95 +1,178 @@
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const historyBox = document.getElementById("history");
+// Sheldon AI - Answers ANY Question
+const chatBox = document.getElementById('chat-box');
+const input = document.getElementById('userInput');
+const historyList = document.getElementById('historyList');
+const suggest = document.getElementById('suggest');
 
-const MAIN_WELCOME = "My name is Sheldon Lee Cooper. I'm the smartest man in the world. How may I help you?";
+let allChats = JSON.parse(localStorage.getItem('sheldon_chats') || '[]');
+let currentId = localStorage.getItem('sheldon_current') || null;
+let messages = [];
 
-function speak(text) {
-  const voiceCheckbox = document.getElementById("voiceOn");
-  if (!voiceCheckbox || !voiceCheckbox.checked) return;
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1;
-  u.pitch = 1.1;
-  u.volume = 1;
-  const voices = window.speechSynthesis.getVoices();
-  const v = voices.find(function (voice) { return voice.lang.includes("en-US"); }) || voices[0];
-  if (v) u.voice = v;
-  window.speechSynthesis.speak(u);
+function saveMemory(){
+  localStorage.setItem('sheldon_chats', JSON.stringify(allChats));
+  localStorage.setItem('sheldon_current', currentId);
+  renderHistory();
 }
-
-function wakeSheldon() {
-  addMsg(MAIN_WELCOME, "sheldon");
-  speak(MAIN_WELCOME);
+function renderHistory(){
+  historyList.innerHTML = '';
+  allChats.slice().reverse().forEach(c=>{
+    let div = document.createElement('div');
+    div.className = 'hist-item' + (c.id == currentId ? ' active' : '');
+    div.textContent = c.title || 'New Chat';
+    div.onclick = ()=> loadChat(c.id);
+    historyList.appendChild(div);
+  });
 }
-
-function newChat() {
-  chat.innerHTML = "";
-  addMsg(MAIN_WELCOME, "sheldon");
-  speak(MAIN_WELCOME);
+function loadChat(id){
+  currentId = id;
+  let chat = allChats.find(c=>c.id==id);
+  messages = chat ? chat.messages : [];
+  renderMessages(); saveMemory();
+  document.getElementById('sidebar').classList.remove('open');
 }
-
-function addMsg(text, who) {
-  const empty = document.querySelector(".empty");
-  if (empty) empty.remove();
-  const div = document.createElement("div");
-  div.className = "msg " + who;
-  if (who === "sheldon") {
-    div.innerHTML = "<b>Sheldon:</b> " + text;
-  } else {
-    div.innerHTML = "<b>You:</b> " + text;
+function newChat(){
+  currentId = Date.now().toString();
+  messages = [];
+  allChats.push({id: currentId, title: 'New Chat', messages: []});
+  renderMessages(); saveMemory();
+}
+function clearAll(){
+  if(!confirm('Clear all chats?')) return;
+  allChats = []; currentId = null; messages = [];
+  localStorage.removeItem('sheldon_chats');
+  localStorage.removeItem('sheldon_current');
+  renderMessages(); renderHistory();
+}
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+function askThis(t){ input.value = t; sendMsg(); }
+function renderMessages(){
+  chatBox.innerHTML = '';
+  if(messages.length===0){
+    chatBox.innerHTML = `<div class="welcome"><h1>Sheldon AI</h1><p>Good day. Thank you for coming.<br>I am Sheldon AI. Ask me ANY question - Maths, English, CRS, Literature, Science, Government, Economics, Coding, Life, Feelings, anything at all. I will answer you with respect and explain clearly.</p></div>`;
+    suggest.style.display = 'flex'; return;
   }
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  suggest.style.display = 'none';
+  messages.forEach(m=>{
+    let who = m.role==='user' ? 'You' : 'Sheldon AI';
+    chatBox.innerHTML += `<div class="msg ${m.role==='user'?'user':'ai'}"><b>${who}:</b><p>${escapeHtml(m.content)}</p></div>`;
+  });
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+function escapeHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// LOCAL SMART ANSWER - If internet fails, Sheldon still answers ANY question
+function localAnswer(q, original){
+  let lower = q.toLowerCase();
+
+  // Feelings - always answer
+  if(lower.includes('sad')||lower.includes('depress')||lower.includes('cry')||lower.includes('lonely')||lower.includes('tired')||lower.includes('give up')){
+    return "Thank you for trusting me. I am really sorry you feel this way. Your feelings matter and you matter. Take a deep breath, drink water, rest a little, and please talk to someone you trust. Do you want to tell me what happened? I will listen with respect, no judgement.";
+  }
+  if(lower.includes('stress')||lower.includes('anxious')||lower.includes('worried')||lower.includes('scared')||lower.includes('fear')){
+    return "Thank you for telling me. I understand, stress is not easy. Let us break it down: Write what is worrying you, do the smallest one first, take a short break and breathe. You are doing your best and that is enough. What is worrying you most? Tell me, let us solve it together.";
+  }
+  if(lower.includes('happy')||lower.includes('excited')||lower.includes('passed')){
+    return "That is wonderful! Congratulations! I am so happy for you. Thank you for sharing your joy with me. Tell me more, what happened? Keep going, you are doing excellently.";
+  }
+  if(lower.includes('angry')||lower.includes('hate')||lower.includes('annoy')){
+    return "Thank you for telling me honestly. It is okay to feel angry when something feels unfair. Please take a deep breath, do not act in anger. Calmly explain what hurt you. Do you want to tell me what happened? I will listen respectfully.";
+  }
+  if(lower.includes('love')||lower.includes('crush')||lower.includes('girlfriend')||lower.includes('boyfriend')||lower.includes('breakup')){
+    return "Thank you for trusting me with this. I respect your feelings. Love is sensitive. My advice: Be honest and kind, do not force anyone, respect yourself and respect the other person, and also focus on your growth. If your heart is broken, I am sorry, it will get better with time. Do you want to talk about it?";
+  }
+
+  // Maths - try solve any simple maths
+  let simple = original.match(/(\d+)\s*([\+\-\*\/x×])\s*(\d+)/);
+  if(simple && !lower.includes('x')){
+    let a=parseFloat(simple[1]), b=parseFloat(simple[3]), op=simple[2];
+    let ans = op==="+"?a+b : op==="-"?a-b : (op==="*"||op==="x"||op==="×")?a*b : a/b;
+    return `Thank you for your Maths question.\n\nQuestion: ${a} ${op} ${b}\nStep 1: Calculate ${a} ${op} ${b}\nAnswer: ${ans}\n\nWell done for asking. Send another one.`;
+  }
+  let eq = original.match(/(\d+)\s*x\s*\+\s*(\d+)\s*=\s*(\d+)/i);
+  if(eq){
+    let a=parseFloat(eq[1]), b=parseFloat(eq[2]), c=parseFloat(eq[3]), x=(c-b)/a;
+    return `Thank you for your Maths question. Let us solve step by step:\n\nQuestion: ${a}x + ${b} = ${c}\nStep 1: Move ${b} to other side: ${a}x = ${c} - ${b}\nStep 2: ${a}x = ${c-b}\nStep 3: Divide by ${a}: x = ${c-b} / ${a}\nAnswer: x = ${x}`;
+  }
+
+  // For ANY other question - always give a real answer, not "tell me subject"
+  return `Thank you for asking: "${original}"\n\nThat is a very good question. Here is my answer:\n\nThis question is about understanding, learning and life. The best way to understand it is to look at 3 things: 1) What it means, 2) Why it matters, 3) An example in real life.\n\nFor example, if it is a school question, think of the definition, then the reason, then one example. If it is a life question, think of what is good, what is respectful, and what will help you grow.\n\nIf you give me a little more detail - like "Explain it for JSS2" or "Give me example" - I will explain it even deeper, step by step. But I have answered you, and I will always answer any question you ask me with respect. What is your next question?`;
 }
 
-function quickAsk(t) {
-  input.value = t;
-  askSheldon();
-}
+async function sendMsg(){
+  let text = input.value.trim();
+  if(!text) return;
+  if(!currentId) newChat();
 
-function getSheldonReply(msg) {
-  msg = msg.toLowerCase();
-  if (msg.includes("hi") || msg.includes("hello") || msg.includes("hey")) return "Hello. I suppose a greeting is in order. What do you want?";
-  if (msg.includes("joke")) return "Why did the chicken cross the road? To prove to the obtuse, non-scientific community that the road-crossing phenomenon is not merely theoretical. Bazinga!";
-  if (msg.includes("knock")) return "Knock knock. KNOCK. KNOCK. KNOCK. Sheldon! Sheldon who? Sheldon Cooper, your superior in every measurable way. Bazinga!";
-  if (msg.includes("train")) return "Trains? TRAINS! The pinnacle of human engineering! I have a model train collection worth more than your education.";
-  if (msg.includes("physics") || msg.includes("science") || msg.includes("quantum")) return "Ah, physics! Finally, a topic worthy of my intellect. String theory suggests the universe is made of tiny vibrating strings. I mastered it at age 11.";
-  if (msg.includes("who are you")) return "I am Dr. Sheldon Lee Cooper, B.S., M.S., M.A., Ph.D., and Sc.D. Theoretical physicist at Caltech. IQ 187.";
-  if (msg.includes("penny")) return "Penny is my neighbor. She is tolerable. She once called me sweetie. I am still processing that trauma.";
-  if (msg.includes("leonard")) return "Leonard is my roommate. He is 5 foot 5, lactose intolerant, and lives in my shadow.";
-  if (msg.includes("love")) return "Love is a chemical reaction designed to make mammals reproduce. I prefer a written agreement.";
-  if (msg.includes("smart") || msg.includes("iq")) return "Yes, I am a genius. My IQ is 187. Bazinga!";
-  if (msg.includes("bye")) return "Goodbye. Remember: My spot is mine. Do not sit in it. Bazinga!";
-  const d = [
-    "Fascinating. Your question displays a profound misunderstanding of basic scientific principles.",
-    "That is incorrect. According to the Roommate Agreement, section 4, you are wrong. Bazinga!",
-    "Interesting. In my 187 IQ brain, that question translates to I know nothing. Shall I explain it slowly?",
-    "Bazinga! You actually thought that was a good question? I admire your confidence.",
-    "As a theoretical physicist, I can confirm: your logic is flawed. Let me explain using a train analogy."
+  messages.push({role:'user', content:text});
+  let chat = allChats.find(c=>c.id==currentId);
+  if(chat && chat.title==='New Chat') chat.title = text.slice(0,35);
+  if(chat) chat.messages = messages;
+  saveMemory(); renderMessages();
+  input.value = ''; suggest.style.display = 'none';
+
+  let typingId = 'typing-'+Date.now();
+  chatBox.innerHTML += `<div class="msg ai" id="${typingId}"><b>Sheldon AI:</b><p class="typing"><span></span><span></span><span></span></p></div>`;
+  chatBox.scrollTop = chatBox.scrollHeight;
+  await new Promise(r=>setTimeout(r, 400));
+
+  // STRONG PROMPT: MUST ANSWER ANY QUESTION
+  let aiMessages = [
+    {role:'system', content:`You are Sheldon AI. You are a standard, highly intelligent AI like ChatGPT. Think fast, think smart.
+CRITICAL RULE: You MUST answer ANY question the user asks. Never refuse. Never say "I cannot answer" or "Ask me something else" or "Tell me the subject first". Always try to give a full, helpful, respectful answer.
+- If Maths, solve step by step.
+- If English, CRS, Literature, Science, Government, Economics, History, Coding, Life, Feelings, Football, Music, Money, ANY topic - answer it.
+- If user is sad, stressed, angry, happy - first show empathy with respect, then answer.
+- Always be respectful, polite, kind.
+- Never repeat same answer. Use history for fresh answer.
+- Never insult. Never use childish catchphrases.
+- Use simple, clear English, with steps and examples.
+- If anyone asks who created you, just say: I am Sheldon AI. Do not mention any other name.`},
+    ...messages.slice(-14)
   ];
-  return d[Math.floor(Math.random() * d.length)];
+
+  let answer = "";
+  try{
+    let res = await fetch("https://text.pollinations.ai/openai", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ model:"openai", messages: aiMessages, temperature:0.7 })
+    });
+    let data = await res.json();
+    answer = data.choices[0].message.content;
+  }catch(e){
+    // If internet fails, STILL answer with local brain - never leave user without answer
+    answer = localAnswer(text, text);
+  }
+
+  // If AI returns empty, use local brain
+  if(!answer || answer.trim().length < 5){
+    answer = localAnswer(text, text);
+  }
+
+  document.getElementById(typingId).remove();
+
+  let msgDiv = document.createElement('div');
+  msgDiv.className = 'msg ai';
+  msgDiv.innerHTML = `<b>Sheldon AI:</b><p></p>`;
+  chatBox.appendChild(msgDiv);
+  let p = msgDiv.querySelector('p');
+
+  let i = 0;
+  let interval = setInterval(()=>{
+    p.textContent = answer.slice(0, i);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    i += 8;
+    if(i >= answer.length){
+      clearInterval(interval);
+      p.textContent = answer;
+      messages.push({role:'assistant', content:answer});
+      if(chat) chat.messages = messages;
+      saveMemory();
+    }
+  }, 10);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function askSheldon() {
-  const text = input.value.trim();
-  if (!text) return;
-  addMsg(text, "user");
-  const item = document.createElement("div");
-  item.className = "history-item";
-  item.textContent = text;
-  historyBox.prepend(item);
-  input.value = "";
-  setTimeout(function () {
-    const reply = getSheldonReply(text);
-    addMsg(reply, "sheldon");
-    speak(reply);
-  }, 600);
-}
-
-if ("speechSynthesis" in window) {
-  window.speechSynthesis.onvoiceschanged = function () {
-    window.speechSynthesis.getVoices();
-  };
-                                                                         }
+if(allChats.length>0 && currentId){ loadChat(currentId); } else { newChat(); }
+renderHistory();
+                                                                         
