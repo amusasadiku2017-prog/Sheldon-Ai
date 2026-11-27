@@ -1,57 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SheldonGPT</title>
+<title>Sheldon AI</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="layout">
 
-  <div class="sidebar">
-    <button class="new-chat" onclick="newChat()">+ New Chat</button>
-    <div class="history-title">RECENT</div>
-    <div id="history"></div>
-    <div class="sidebar-bottom">
-      <div class="user-card">
-        <div class="mini-logo">SC</div>
-        <div><b>Dr. Sheldon Cooper</b><br><span>Theoretical Physicist</span></div>
-      </div>
-      <button class="wake-btn" onclick="wakeSheldon()">Activate Voice</button>
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <button class="new-btn" onclick="newChat()">+ New Chat</button>
+    <p class="side-title">Chat History</p>
+    <div id="historyList"></div>
+    <div class="side-bottom">
+      <b>Sheldon AI</b>
+      <small>Smart • Fast • Remembers You</small>
+      <button class="clear-btn" onclick="clearAll()">Clear All Chats</button>
     </div>
   </div>
 
   <div class="main">
-    <div class="topbar">
-      <span>SheldonGPT</span>
-      <label><input type="checkbox" id="voiceOn" checked> Voice</label>
+    <div class="top">
+      <button class="menu" onclick="toggleSidebar()">☰</button>
+      <b>Sheldon AI</b>
+      <span>● Online</span>
     </div>
 
-    <div id="chat">
-      <div class="empty">
-        <div class="logo">SC</div>
-        <h1>My name is Sheldon Lee Cooper</h1>
-        <p>I'm the smartest man in the world. How may I help you?</p>
-        <div class="suggest">
-          <button onclick="quickAsk('Tell me a joke')">Tell me a joke</button>
-          <button onclick="quickAsk('Explain physics')">Explain physics</button>
-          <button onclick="quickAsk('Do you like trains?')">Trains</button>
-          <button onclick="quickAsk('Knock knock')">Knock Knock</button>
-        </div>
-      </div>
+    <div id="chat-box" class="chat-box"></div>
+
+    <div class="suggest" id="suggest">
+      <button onclick="askThis('Solve 2x + 5 = 15 step by step')">📐 Solve Maths</button>
+      <button onclick="askThis('Explain photosynthesis for JSS2')">🧬 Science</button>
+      <button onclick="askThis('Who was Moses in CRS? Explain with lesson')">✝️ CRS</button>
+      <button onclick="askThis('What is a metaphor? Give examples')">📚 Literature</button>
     </div>
 
     <div class="input-area">
-      <div class="input-box">
-        <input id="input" placeholder="Ask Sheldon anything..." onkeypress="if(event.key==='Enter') askSheldon()">
-        <button onclick="askSheldon()">↑</button>
-      </div>
-      <p class="note">SheldonGPT can make mistakes. Verify important information.</p>
+      <input id="userInput" placeholder="Ask Sheldon anything..." onkeypress="if(event.key==='Enter') sendMsg()">
+      <button id="sendBtn" onclick="sendMsg()">➤</button>
     </div>
+    <p class="note">Sheldon AI can make mistakes. Check important info.</p>
   </div>
-
 </div>
+
 <script src="script.js"></script>
 </body>
 </html>
